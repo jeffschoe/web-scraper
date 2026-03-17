@@ -1,0 +1,26 @@
+{
+  "name": "web-scraper",
+  "version": "1.0.0",
+  "description": "Boot.dev guided project: Build a Web Scraper in TypeScript",
+  "homepage": "https://github.com/jeffschoe/web-scraper#readme",
+  "bugs": {
+    "url": "https://github.com/jeffschoe/web-scraper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffschoe/web-scraper.git"
+  },
+  "license": "ISC",
+  "author": "jeffschoe",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsx ./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
