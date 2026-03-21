@@ -105,3 +105,33 @@ export function extractPageData(
     image_urls: getImagesFromHTML(html, pageURL),
   };
 }
+
+
+
+export async function getHTML(url: string) {
+  console.log(`crawling ${url}`);
+
+  let res;
+  try {
+    res = await fetch(url, {
+      headers: { "User-Agent": "BootCrawler/1.0" },
+    });
+  } catch (err) {
+    throw new Error(`Got Network error: ${(err as Error).message}`);
+  }
+
+  if (res.status > 399) {
+    console.log(`Got HTTP error: ${res.status} ${res.statusText}`);
+    return;
+  }
+
+  const contentType = res.headers.get("content-type");
+  if (!contentType || !contentType.includes("text/html")) {
+    console.log(`Got non-HTML response: ${contentType}`);
+    return;
+  }
+
+  return res.text();
+}
+
+
