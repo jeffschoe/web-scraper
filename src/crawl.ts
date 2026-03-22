@@ -106,8 +106,6 @@ export function extractPageData(
   };
 }
 
-
-
 export async function getHTML(url: string) {
   console.log(`crawling ${url}`);
 
@@ -134,4 +132,39 @@ export async function getHTML(url: string) {
   return res.text();
 }
 
+export async function crawlPage(
+  baseURL: string,
+  currentURL: string = baseURL, //set default for first iteration
+  pages: Record<string, number> = {}, //<normalizedURL : visit count>
+) {  
+  const baseURLObj = new URL(baseURL);
+  const currentURLObj = new URL(currentURL);
+  if (currentURLObj.hostname !== baseURLObj.hostname) {
+    return pages;
+  }
 
+  const normalizedCurrentURL = normalizeURL(currentURL); //we normalize so that pages with minor formatting differnces, but are actually the same, don't get double/triple counted
+  if (normalizedCurrentURL in pages) { //if we've seen this pages before
+    pages[normalizedCurrentURL]++; //incrememnt page-visits counter
+    return pages;
+  }
+  // have not seen page before
+  pages[normalizedCurrentURL] = 1; //add new page with count 1
+  
+  console.log(`crawling ${currentURL}`);
+  let html: string | undefined = "";
+  try {
+    html = await getHTML(currentURL);
+  } catch (err) {
+    console.log(`${(err as Error).message}`);
+    return pages;
+  }
+
+  const nextURLs: string[] = getURLsFromHTML(html ?? "", baseURL);
+  for (const nextURL of nextURLs) {
+    pages = await crawlPage(baseURL, nextURL, pages)
+  }
+
+  return pages;
+
+}
