@@ -26,6 +26,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "jsdom": "^29.0.0"
+    "jsdom": "^29.0.0",
+    "p-limit": "^7.3.0"
   }
 }
