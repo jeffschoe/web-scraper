@@ -1,5 +1,6 @@
 import { argv } from "node:process";
 import { crawlSiteAsync } from "./crawl";
+import { writeJSONReport } from "./report";
 
 
 async function main() {
@@ -47,12 +48,13 @@ async function main() {
   if (firstPage) {
     console.log(
       `First page record: ${firstPage["url"]} - ${firstPage["heading"]}`,
-    );
-    
+    ); 
   }
 
+  writeJSONReport(pages, "report.json");
+
   process.exit(0);
-  
+
 }
 
 function printUsage(): string {
