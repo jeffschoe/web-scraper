@@ -2,8 +2,6 @@ import { JSDOM }  from 'jsdom';
 import pLimit, { LimitFunction } from 'p-limit';
 
 
-
-
 export function normalizeURL(url: string) {
   // https://nodejs.org/api/url.html#url-strings-and-url-objects
   const urlObj = new URL(url);
@@ -110,11 +108,12 @@ export function extractPageData(
 
 class ConcurrentCrawler {
   private baseURL: string; //starting URL
-  private pages: Record<string, number>; //Record of page visit counts
+  private pages: Record<string, ExtractedPageData>; //Record of page visit counts
   private limit: LimitFunction;
   private maxPages: number; //max number of unique pages to crawl
   private shouldStop = false;
   private allTasks = new Set<Promise<void>>();
+  private visited = new Set<string>();
 
   constructor(
     baseURL: string, 
@@ -131,22 +130,17 @@ class ConcurrentCrawler {
     if (this.shouldStop) {
       return false;
     }
-
-    if (this.pages[normalizedURL]) { //if we've seen this pages before
-      this.pages[normalizedURL]++; //incrememnt page-visits counter
+    if (this.visited.has(normalizedURL)) { //if we've seen this pages before
       return false;
-    }
-    if (Object.keys(this.pages).length === this.maxPages) {
+    }  
+    if (this.visited.size >= this.maxPages) {
       this.shouldStop = true;
       console.log(`Reached maximum number of pages to crawl.`)
       return false;
     }
-    // have not seen page before
-    this.pages[normalizedURL] = 1; //add new page with count 1
+
+    this.visited.add(normalizedURL);
     return true;
-
-    
-
   }
 
   private async getHTML(currentURL: string): Promise<string> {
@@ -173,7 +167,6 @@ class ConcurrentCrawler {
     });
   }
 
-
   private async crawlPage(currentURL: string): Promise<void> {  
     if (this.shouldStop) {
       return;
@@ -198,22 +191,32 @@ class ConcurrentCrawler {
       return;
     }
 
-    const nextURLs: string[] = getURLsFromHTML(html, this.baseURL);
-    const crawlPromises = nextURLs.map((nextURL) => {
+    const data = extractPageData(html, currentURL);
+    this.pages[normalizedURL] = data;
+
+    const crawlPromises: Promise<void>[] = []
+    for (const nextURL of data.outgoing_links) {
+      if (this.shouldStop) break;
+
       const task = this.crawlPage(nextURL);
       this.allTasks.add(task)
       task.finally(() => this.allTasks.delete(task))
-      return task;
-    });
-    
+      crawlPromises.push(task);
+    }
+
     await Promise.all(crawlPromises);
-
-
   }
 
 
-  async crawl(): Promise<Record<string, number>> {
-    await this.crawlPage(this.baseURL);
+  async crawl(): Promise<Record<string, ExtractedPageData>> {
+    const rootTask = this.crawlPage(this.baseURL);
+    this.allTasks.add(rootTask);
+    try {
+      await rootTask;
+    } finally {
+      this.allTasks.delete(rootTask);
+    }
+    await Promise.allSettled(Array.from(this.allTasks));
     return this.pages;
   }
 
@@ -223,7 +226,7 @@ export async function crawlSiteAsync(
   baseURL: string,
   maxConcurrency: number = 5,
   maxPages: number = 100,
-): Promise<Record<string, number>> {
+): Promise<Record<string, ExtractedPageData>> {
   const concurrentCrawler = new ConcurrentCrawler(baseURL, maxConcurrency, maxPages);
   const pages = await concurrentCrawler.crawl();
   return pages;

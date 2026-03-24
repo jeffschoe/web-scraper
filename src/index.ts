@@ -21,14 +21,34 @@ async function main() {
   const maxConcurrency = Number(process.argv[3]);
   const maxPages = Number(process.argv[4]);
 
+  if (!Number.isFinite(maxConcurrency) || maxConcurrency <= 0) {
+    console.log("invalid maxConcurrency");
+    console.log(printUsage())
+    process.exit(1);
+  }
+  if (!Number.isFinite(maxPages) || maxPages <= 0) {
+    console.log("invalid maxPages");
+    console.log(printUsage())
+    process.exit(1);
+  }
+
   console.log(
-    `\nstarting crawl of: ${baseURL} with max concurrency of ${maxConcurrency} and max pages of ${maxPages}`
+    `starting crawl of: ${baseURL} (concurrency=${maxConcurrency}, maxPages=${maxPages})...`,
   );
 
   const pages = await crawlSiteAsync(baseURL, maxConcurrency, maxPages);
 
-  for (const [page, visits ] of Object.entries(pages)) {
-    console.log(`page: ${page}, visits: ${visits}`)
+  for (const [url, data] of Object.entries(pages)) {
+    console.log(`${url}: ${data.heading}`);
+  }
+
+  console.log("Finished crawling.");
+  const firstPage = Object.values(pages)[0];
+  if (firstPage) {
+    console.log(
+      `First page record: ${firstPage["url"]} - ${firstPage["heading"]}`,
+    );
+    
   }
 
   process.exit(0);
